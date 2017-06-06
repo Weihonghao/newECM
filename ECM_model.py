@@ -12,17 +12,21 @@ import preprocess_data
 from preprocess_data import EOS_ID, PAD_ID, GO_ID, UNK_ID
 import tensorflow as tf
 import numpy as np
-import time
+
 from tensorflow.contrib.rnn import LSTMCell, LSTMStateTuple
 
 class ECMModel(object):
     def __init__(self, embeddings, id2word, config, forward_only=False):
         magic_number = 256
         assert  (magic_number%2 == 0)
+        # self.vocab_label = vocab_label  # label for vocab
+        # self.emotion_label = emotion_label  # label for emotion
         self.config = config
         self.batch_size = config.batch_size
+        #print("batch size", self.batch_size)
         self.vocab_size = config.vocab_size
         self.non_emotion_size = config.non_emotion_size
+        #self.emotion_size = self.vocab_size - self.non_emotion_size
         self.id2word = id2word
         self.forward_only = forward_only
         self.emotion_kind = 6
@@ -98,13 +102,21 @@ class ECMModel(object):
             cell_bw=lstm_bw_cell,
             inputs=inputs,
             sequence_length=sequence_length,
-            time_major=True, # time major [max_len, batch_size, 0.5 decoder_dim]
+            time_major=True,
             dtype=tf.float32)
 
+        # Concatinate forward and backword hidden output vectors.
+        # each vector is of size [batch_size, sequence_length, encoder_state_size]
 
         logging.debug('fw hidden state: %s' % str(outputs_fw))
         hidden_state = tf.concat([outputs_fw, outputs_bw], 2)
         logging.debug('Concatenated bi-LSTM hidden state: %s' % str(hidden_state))
+        # final_state_fw and final_state_bw are the final states of the forwards/backwards LSTM
+        """
+        print("encode output ", final_state_fw[1].get_shape())
+        concat_final_state = tf.concat([final_state_fw[1], final_state_bw[1]], 1)
+        logging.debug('Concatenated bi-LSTM final hidden state: %s' % str(concat_final_state))
+        """
 
         encoder_final_state_c = tf.concat(
             (final_state_fw.c, final_state_bw.c), 1)
@@ -368,7 +380,7 @@ class ECMModel(object):
 
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         decoder_output, final_IM = self.decode(encoder_outputs, encoder_final_state, self.answer_len) # [batch_size, max_len, vocab_size]
-        
+
         # mask = tf.cast(tf.sequence_mask(self.answer_len, tf.shape(self.answer)[0]), dtype=tf.float32)
         # self.tfloss = tf.contrib.seq2seq.sequence_loss(logits=tf.transpose(decoder_logits, [1, 0, 2]), targets=tf.transpose(self.answer, [1, 0]), weights = mask)
         # loss_sum = tf.summary.scalar("loss", self.tfloss)
@@ -422,10 +434,5 @@ class ECMModel(object):
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=False)
         loss, ids = sess.run([self.tfloss, self.tfids], feed_dict=input_feed)
-<<<<<<< HEAD
         return loss, ids
         # [[self.id2word[each] for each in each_list] for each_list in ids]
-=======
-        return loss, ids.T
-        # [[self.id2word[each] for each in each_list] for each_list in ids]
->>>>>>> 56473f42cad91760b156ccaa96942e45cbf338c8
