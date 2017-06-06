@@ -292,7 +292,8 @@ class ECMModel(object):
         decoder_outputs_flat = tf.reshape(decoder_outputs, (-1, decoder_dim))
         gto_flat = tf.sigmoid(tf.matmul(decoder_outputs_flat, self.vu))
         gto = tf.reshape(gto_flat, (decoder_batch_size, decoder_max_steps, 1))
-        decode_output = tf.layers.dense(decoder_outputs, self.vocab_size, name="state2output")
+        #decode_output = tf.layers.dense(decoder_outputs, self.vocab_size, name="state2output")
+        decode_output = tf.reshape(tf.add(tf.matmul(decoder_outputs_flat, self.W), self.b), [decoder_batch_size, decoder_max_steps, self.vocab_size])
         boost_output = tf.concat([gto * decode_output[:, :,:self.non_emotion_size], (1 - gto) * decode_output[:,:, self.non_emotion_size:]], 2)
         prediction = tf.argmax(boost_output, axis=2)  # [batch_size,1]
         return prediction, boost_output
