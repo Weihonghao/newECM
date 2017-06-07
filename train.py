@@ -34,7 +34,7 @@ tf.app.flags.DEFINE_integer("state_size", 256, "Size of encoder and decoder hidd
 tf.app.flags.DEFINE_string("data_dir", "testdata/", "Data directory")
 tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints/", "Checkpoint directory")
 tf.app.flags.DEFINE_string("log_dir", "log/", "Tensorboard log directory")
-tf.app.flags.DEFINE_string("vocab_path", "data/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
+tf.app.flags.DEFINE_string("vocab_path", "testdata/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
 tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
 tf.app.flags.DEFINE_string("embed_path", "",
                            "Path to the trimmed GLoVe embedding (default: ./data/squad/glove.trimmed.{embedding_size}.npz)")
@@ -147,7 +147,7 @@ def train():
     start_time = time.time()
     data_config = DataConfig(FLAGS.data_dir)
     logFile = open('data/log.txt', 'w')
-    embed_path = FLAGS.embed_path or pjoin("data", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
+    embed_path = FLAGS.embed_path or pjoin("testdata", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
     embeddings = utils.load_glove_embeddings(embed_path)
 
     vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")
@@ -210,7 +210,7 @@ def train():
                 logging.info("-- validation --")
                 batch_num = len(validation_set) / FLAGS.batch_size
                 avg_loss = 0
-                for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):#validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
+                for i, batch in enumerate(utils.minibatches(validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):#validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
                     loss, ids = model.test(sess, batch)
                     print('loss: %f' % (loss))

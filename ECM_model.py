@@ -16,7 +16,7 @@ import numpy as np
 from tensorflow.contrib.rnn import LSTMCell, LSTMStateTuple
 
 class ECMModel(object):
-    def __init__(self, embeddings, id2word, config, forward_only=False):
+    def __init__(self, embeddings, id2word, config, forward_only=False, mode = "VE"):
         magic_number = 256
         assert  (magic_number%2 == 0)
         # self.vocab_label = vocab_label  # label for vocab
@@ -40,7 +40,13 @@ class ECMModel(object):
         #input_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim + config.embedding_size]
         input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim +
 
-        self.additional_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim]
+
+
+        self.mode = mode
+        if mode == "VE":
+            self.additional_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim]
+        else:
+            self.additional_size = [self.batch_size, self.decoder_state_size + self.IM_size]
         if self.config.retrain_embeddings:  # whether to cotrain word embedding
             self.embeddings = tf.Variable(embeddings, name="Emb", dtype=tf.float32)
         else:
@@ -219,9 +225,12 @@ class ECMModel(object):
                 #logging.debug('gate output: %s' % str(read_gate_output))
                 user_emotion_vector = tf.nn.embedding_lookup(self.emotion_vector, self.emotion_tag)
                 logging.debug('user_emotion_vector: %s' % str(user_emotion_vector))
-                next_input = tf.concat(
-                    #[previous_output_vector], 1) #user_emotion_vector
-                    [context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
+
+
+                if self.mode == 'VE':
+                    next_input = tf.concat(
+                        #[previous_output_vector], 1) #user_emotion_vector
+                        [context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
                 logging.debug('context: %s' % str(context))
                 logging.debug('previous_output_vector: %s' % str(previous_output_vector))
                 logging.debug('user_emotion_vector: %s' % str(user_emotion_vector))
