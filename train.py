@@ -227,15 +227,52 @@ def train():
                     #avg_loss += loss
                 #avg_loss /= batch_num
                 #logging.info("Average validation loss: {}".format(avg_loss))
-                
+
+def decode():
+    embed_path = FLAGS.embed_path or pjoin(real_data_dir, "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
+    embeddings = utils.load_glove_embeddings(embed_path)
+    vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")
+    non_emotion_size, vocab, rev_vocab = preprocess_data.initialize_vocabulary(vocab_path)
+    FLAGS.vocab_size = len(vocab)
+    FLAGS.non_emotion_size = non_emotion_size
+    FLAGS.encoder_state_size = 128
+    FLAGS.decoder_state_size = 2 * FLAGS.encoder_state_size
+    FLAGS.batch_size = 1
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+        model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS, forward_only=True)
+        saver = tf.train.Saver()
+        initialize_model(saver, sess, model)
+        # Decode from standard input.
+        sys.stdout.write("> ")
+        sys.stdout.flush()
+        sentence = sys.stdin.readline()
+        while sentence:
+            # Get token-ids for the input sentence.
+            token_ids = preprocess_data.sentence_to_token_ids(tf.compat.as_bytes(sentence), vocab)
+            print("> Emotion: [0-6]", end="")
+            sys.stdout.flush()
+            # Get emotion tag
+            tag = sys.stdin.readline()
+            tag = int(tf.compat.as_bytes(tag))
+            data = [token_ids], [len(token_ids)], [tag]
+            outputs = model.answer(sess, data)
+            if preprocess_data.EOS_ID in outputs:
+                outputs = outputs[:outputs.index(preprocess_data.EOS_ID)]
+            print(" ".join([tf.compat.as_str(rev_vocab[output]) for output in outputs]))
+            print("> ", end="")
+            sys.stdout.flush()
+            sentence = sys.stdin.readline()
 
 
 def main(_):
-    '''if FLAGS.decode:
-        decode()
-    else:'''
-    train()
-
+    if len(sys.argv) < 2:
+        print ("Usage: python train.py [train/test]")
+    else:
+        cmd = sys.argv[1]
+        if cmd == "train":
+            train()
+        elif cmd == "test":
+            decode()
 
 if __name__ == "__main__":
     tf.app.run()

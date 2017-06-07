@@ -75,9 +75,9 @@ class ECMModel(object):
 
         self.question = tf.placeholder(tf.int32, shape=[None, None], name='question')
         self.question_len = tf.placeholder(tf.int32, shape=[None], name='question_len')
+        self.answer_len = tf.placeholder(tf.int32, shape=[None], name='answer_len')
         if not self.forward_only:
             self.answer = tf.placeholder(tf.int32, shape=[None, None], name='answer')
-            self.answer_len = tf.placeholder(tf.int32, shape=[None], name='answer_len')
             self.LA = tf.placeholder(dtype=tf.int32, name='LA', shape=())  # batch
         self.emotion_tag = tf.placeholder(tf.int32, shape=[None], name='emotion_tag')
         self.dropout_placeholder = tf.placeholder(dtype=tf.float32, name="dropout", shape=())
@@ -425,8 +425,7 @@ class ECMModel(object):
             loss_sum = tf.summary.scalar("loss", self.tfloss)
             self.train_op = tf.train.AdamOptimizer(self.config.learning_rate, beta1=0.5).minimize(self.tfloss)
         else:
-            EM_ids, EM_output = self.external_memory_function_batch(tf.reshape(decoder_output, [-1, self.decoder_state_size]))
-            self.EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
+            EM_ids, EM_output = self.external_memory_function_batch(decoder_output)
         self.tfids = tf.argmax(self.EM_output, axis=2)
         logging.debug('self.tfids: %s' % str(self.tfids))
 
@@ -449,8 +448,7 @@ class ECMModel(object):
     def answer(self, sess, dataset):
         #print(len(dataset))
         assert self.forward_only == True
-        question_batch, question_len_batch, _, _, tag_batch = dataset
-        tag_batch = map(lambda x: x[0],tag_batch)
+        question_batch, question_len_batch, tag_batch = dataset
         answer_len_batch = 10 * np.ones(self.batch_size)
 
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
