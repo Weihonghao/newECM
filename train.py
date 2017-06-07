@@ -256,8 +256,8 @@ def decode():
             tag = int(tf.compat.as_bytes(tag))
             data = [token_ids], [len(token_ids)], [tag]
             outputs = model.answer(sess, data)[0]
-            print("look here")
-            print(outputs)
+            # print("look here")
+            # print(outputs)
             answer = ""
             for i in outputs:
                 if i == preprocess_data.EOS_ID:
