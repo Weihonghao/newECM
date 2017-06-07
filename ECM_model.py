@@ -41,7 +41,7 @@ class ECMModel(object):
         input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim +
 
 
-
+        self.IM_size = 256
         self.mode = mode
         if self.mode == "VE":
             self.additional_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim]
@@ -63,7 +63,7 @@ class ECMModel(object):
         self.pad_step_embedded = tf.nn.embedding_lookup(self.embeddings, pad_time_slice)#0.001 * tf.ones(input_size)
         self.go_step_embedded = tf.nn.embedding_lookup(self.embeddings, go_time_slice)#0.001 * tf.ones(input_size)
 
-        self.IM_size = 256
+
         self.eps = 1e-5
 
         self.internalMemory = tf.get_variable("IMFuck", shape=[self.emotion_kind, self.IM_size],
@@ -174,33 +174,39 @@ class ECMModel(object):
             def get_next_input():
                 print('in get next input')
 
-                '''write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
-                eps_matrix = self.eps * tf.ones_like(write_gate)
-                eps_write_gate = tf.log(eps_matrix + write_gate)
-                write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
-                write_one_hot_transpose = tf.transpose(write_one_hot)
 
-                tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
-                logging.debug('Before: %s' % str(tmpFuck))
-                new_internalMemory = previous_loop_state * (1- tmpFuck)
-                logging.debug('new_internalMemory: %s' % str(new_internalMemory))
-                tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
-                logging.debug('TmpFuck2: %s' % str(tmpFuck2))
-                new_internalMemory += tf.exp(tmpFuck)
-                logging.debug('new_internalMemory: %s' % str(new_internalMemory))
-                assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
+                '''if not self.forward_only:
+
+                    write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+                    eps_matrix = self.eps * tf.ones_like(write_gate)
+                    eps_write_gate = tf.log(eps_matrix + write_gate)
+                    write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
+                    write_one_hot_transpose = tf.transpose(write_one_hot)
+
+                    tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
+                    logging.debug('Before: %s' % str(tmpFuck))
+                    new_internalMemory = previous_loop_state * (1- tmpFuck)
+                    logging.debug('new_internalMemory: %s' % str(new_internalMemory))
+                    tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
+                    logging.debug('TmpFuck2: %s' % str(tmpFuck2))
+                    new_internalMemory += tf.exp(tmpFuck)
+                    logging.debug('new_internalMemory: %s' % str(new_internalMemory))
+                    assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
 
                 #previous_loop_state = new_internalMemory
 
                 previous_loop_state = new_internalMemory
                 logging.debug('after: %s' % "fuck")'''
 
-                output_logits = tf.add(tf.matmul(previous_output, self.W), self.b)
-                prediction = tf.argmax(output_logits, axis=1)
-                next_input = tf.nn.embedding_lookup(self.embeddings, prediction)
+
 
 
                 #--------------------------------------------------------------
+
+
+                output_logits = tf.add(tf.matmul(previous_output, self.W), self.b)
+                prediction = tf.argmax(output_logits, axis=1)
+                next_input = tf.nn.embedding_lookup(self.embeddings, prediction)
 
                 '''output_logits = tf.add(tf.matmul(previous_output, self.W), self.b)
                 prediction = tf.argmax(output_logits, axis=1)
@@ -237,6 +243,13 @@ class ECMModel(object):
                     next_input = tf.concat(
                         #[previous_output_vector], 1) #user_emotion_vector
                         [context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
+                else:
+                    read_gate = tf.sigmoid(attention, name="read_gate")
+                    logging.debug('read_gate: %s' % str(read_gate))
+                    read_gate_output = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
+                    logging.debug('gate output: %s' % str(read_gate_output))
+                    next_input = tf.concat(
+                        [context, previous_output_vector, read_gate * read_gate_output], 1)
                 logging.debug('context: %s' % str(context))
                 logging.debug('previous_output_vector: %s' % str(previous_output_vector))
                 logging.debug('user_emotion_vector: %s' % str(user_emotion_vector))
@@ -254,25 +267,26 @@ class ECMModel(object):
             logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
 
 
-            '''if previous_state is not None:
+            if previous_state is not None and self.mode == "IM":
 
-                write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
-                eps_matrix = self.eps * tf.ones_like(write_gate)
-                eps_write_gate = tf.log(eps_matrix + write_gate)
-                write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
-                write_one_hot_transpose = tf.transpose(write_one_hot)
+                if not self.forward_only:
+                    write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+                    eps_matrix = self.eps * tf.ones_like(write_gate)
+                    eps_write_gate = tf.log(eps_matrix + write_gate)
+                    write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
+                    write_one_hot_transpose = tf.transpose(write_one_hot)
 
-                tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
-                logging.debug('Before: %s' % str(tmpFuck))
-                new_internalMemory = previous_loop_state * (1- tmpFuck)
-                logging.debug('new_internalMemory: %s' % str(new_internalMemory))
-                tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
-                logging.debug('TmpFuck2: %s' % str(tmpFuck2))
-                new_internalMemory += tf.exp(tmpFuck)
-                logging.debug('new_internalMemory: %s' % str(new_internalMemory))
-                assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
-                previous_loop_state = new_internalMemory
-                logging.debug('after: %s' % "fuck")'''
+                    tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
+                    logging.debug('Before: %s' % str(tmpFuck))
+                    new_internalMemory = previous_loop_state * (1- tmpFuck)
+                    logging.debug('new_internalMemory: %s' % str(new_internalMemory))
+                    tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
+                    logging.debug('TmpFuck2: %s' % str(tmpFuck2))
+                    new_internalMemory += tf.exp(tmpFuck)
+                    logging.debug('new_internalMemory: %s' % str(new_internalMemory))
+                    assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
+                    previous_loop_state = new_internalMemory
+                    logging.debug('after: %s' % "fuck")
 
 
             inputNow = tf.cond(finished, lambda : pad_step_embedded , get_next_input)
@@ -285,10 +299,6 @@ class ECMModel(object):
             state = previous_state
             #output, state = decode_cell(inputNow, previous_state)
 
-
-            #write_gate = tf.sigmoid(tf.layers.dense(state, self.IM_size, name="write_gate"))
-            #change_IM = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
-            #change_IM = change_IM * write_gate
 
             return (elements_finished,
                     inputNow,
@@ -417,8 +427,8 @@ class ECMModel(object):
             #logging.debug('tmp loss 2: %s' % str(tmp))
             #loss += tf.reduce_mean(tmp)
             emotion_logit_one_hot = tf.cast(tf.one_hot(emotion_logit,2,on_value=1,off_value=0), dtype=tf.float32)
-            emotion_logit_one_hot = emotion_logit_one_hot + 0.001
-            tmp = tf.contrib.seq2seq.sequence_loss(logits = emotion_logit_one_hot, targets = emotion_label, weights = tf.ones_like(emotion_label, dtype=tf.float32))
+            emotion_logit_one_hot = emotion_logit_one_hot * 100
+            tmp = tf.contrib.seq2seq.sequence_loss(logits = emotion_logit_one_hot, targets = emotion_label, weights = mask)
             loss += tmp
             print("loss 2 print ", loss)
             #loss += 2 * tf.nn.l2_loss(final_IM)
