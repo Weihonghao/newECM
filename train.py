@@ -249,18 +249,22 @@ def decode():
         while sentence:
             # Get token-ids for the input sentence.
             token_ids = preprocess_data.sentence_to_token_ids(tf.compat.as_bytes(sentence), vocab)
-            print("> Emotion: [0-6]", end="")
+            print("> Choose Emotion [0-6]: ", end="")
             sys.stdout.flush()
             # Get emotion tag
             tag = sys.stdin.readline()
             tag = int(tf.compat.as_bytes(tag))
             data = [token_ids], [len(token_ids)], [tag]
-            outputs = model.answer(sess, data)
+            outputs = model.answer(sess, data)[0]
             print("look here")
             print(outputs)
-            if preprocess_data.EOS_ID in outputs:
-                outputs = outputs[:outputs.index(preprocess_data.EOS_ID)]
-            print(" ".join([tf.compat.as_str(output) for output in outputs[0]]))#rev_vocab[output]) for output in outputs]))
+            answer = ""
+            for i in outputs:
+                if i == preprocess_data.EOS_ID:
+                    break
+                else:
+                    answer += rev_vocab[i] + " "
+            print(answer)
             print("> ", end="")
             sys.stdout.flush()
             sentence = sys.stdin.readline()

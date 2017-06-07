@@ -479,9 +479,9 @@ class ECMModel(object):
 
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
                                            answer_len_batch=answer_len_batch, is_train=False)
-        ids = sess.run([self.tfids], feed_dict=input_feed)
+        ids = sess.run(self.tfids, feed_dict=input_feed)
         #return [[each for each in each_list] for each_list in ids]
-        return [[self.id2word[each] for each in each_list] for each_list in ids[0]]
+        return ids
 
     def test(self, sess, test_set):
         #print(len(test_set))
