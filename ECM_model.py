@@ -184,10 +184,14 @@ class ECMModel(object):
                 output_logits = tf.add(tf.matmul(previous_output, self.W), self.b)
                 prediction = tf.argmax(output_logits, axis=1)
                 next_input = tf.nn.embedding_lookup(self.embeddings, prediction)
-                '''tmp_id, _   = self.external_memory_function(previous_output)
-                previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
-                previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
-                score = attention_mechanism(previous_state)
+
+
+                #--------------------------------------------------------------
+
+                output_logits = tf.add(tf.matmul(previous_output, self.W), self.b)
+                prediction = tf.argmax(output_logits, axis=1)
+                previous_output_vector = tf.nn.embedding_lookup(self.embeddings, prediction)
+                score = attention_mechanism(previous_output)
                 weights = tf.nn.softmax(score)
                 print("here")
                 weights = tf.reshape(weights, [tf.shape(weights)[0], 1, tf.shape(weights)[1]])
@@ -210,7 +214,6 @@ class ECMModel(object):
                     [previous_output_vector], 1) #user_emotion_vector
                     #[context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
                 logging.debug('next_input: %s' % str(next_input))
-                '''
                 return next_input
 
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
@@ -272,7 +275,7 @@ class ECMModel(object):
                 return loop_fn_transition(time, previous_output, previous_state, previous_loop_state)
 
         decode_cell = tf.contrib.rnn.LSTMCell(self.decoder_state_size)
-        # attention_mechanism = tf.contrib.seq2seq.LuongAttention(self.decoder_state_size, encoder_outputs)
+        attention_mechanism = tf.contrib.seq2seq.LuongAttention(self.decoder_state_size, encoder_outputs)
         decoder_outputs_ta, decoder_final_state, decoder_final_loop_state = tf.nn.raw_rnn(decode_cell, loop_fn)
         decoder_outputs = decoder_outputs_ta.stack()
         # decoder_max_steps, decoder_batch_size, decoder_dim = tf.unstack(tf.shape(decoder_outputs))#decoder_outputs.get_shape().as_list()#tf.unstack(tf.shape(decoder_outputs))
@@ -295,8 +298,8 @@ class ECMModel(object):
         #decode_output = tf.layers.dense(decoder_outputs, self.vocab_size, name="state2output")
         decode_output = tf.reshape(tf.add(tf.matmul(decoder_outputs_flat, self.W), self.b), [decoder_batch_size, decoder_max_steps, self.vocab_size])
         boost_output = tf.concat([gto * decode_output[:, :,:self.non_emotion_size], (1 - gto) * decode_output[:,:, self.non_emotion_size:]], 2)
-        prediction = tf.argmax(boost_output, axis=2)  # [batch_size,1]
-        return prediction, boost_output
+        prediction = tf.argmax(boost_output, axis=2)
+        return prediction, boost_output # [batch_size, max_len] #[batch_size, max_len, vocab_len]
 
     def create_feed_dict(self, question_batch, question_len_batch, emotion_tag_batch, answer_batch=None,
                          answer_len_batch=None, is_train=True):
