@@ -16,7 +16,7 @@ import numpy as np
 from tensorflow.contrib.rnn import LSTMCell, LSTMStateTuple
 
 class ECMModel(object):
-    def __init__(self, embeddings, id2word, config, forward_only=False, mode = "VE"):
+    def __init__(self, embeddings, id2word, config, forward_only=False, mode = "IM"):
         magic_number = 256
         assert  (magic_number%2 == 0)
         # self.vocab_label = vocab_label  # label for vocab
@@ -154,7 +154,12 @@ class ECMModel(object):
             initial_input = tf.concat([self.go_step_embedded, tf.zeros(self.additional_size, dtype= tf.float32)],axis= 1)#self.go_step_embedded#tf.nn.embedding_lookup(self.embeddings, GO_emb)
             initial_cell_state = encoder_final_state
             initial_cell_output = None
-            initial_loop_state = None#self.internalMemory  # we don't need to pass any additional information
+            #initial_loop_state = None#self.internalMemory  # we don't need to pass any additional information
+            if self.mode == "VE":
+                initial_loop_state = None # we don't need to pass any additional information
+            else:
+                initial_loop_state = self.internalMemory
+
             print('before return initial')
             logging.debug('initial_elements_finished: %s' % str(initial_elements_finished))
             logging.debug('initial_input: %s' % str(initial_input))
@@ -270,7 +275,7 @@ class ECMModel(object):
             if previous_state is not None and self.mode == "IM":
 
                 if not self.forward_only:
-                    write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+                    write_gate = tf.sigmoid(tf.layers.dense(tf.concat([previous_state.h, previous_state.c], axis=1), self.IM_size, name="write_gate"))
                     eps_matrix = self.eps * tf.ones_like(write_gate)
                     eps_write_gate = tf.log(eps_matrix + write_gate)
                     write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
@@ -429,9 +434,12 @@ class ECMModel(object):
             emotion_logit_one_hot = tf.cast(tf.one_hot(emotion_logit,2,on_value=1,off_value=0), dtype=tf.float32)
             emotion_logit_one_hot = emotion_logit_one_hot * 100
             tmp = tf.contrib.seq2seq.sequence_loss(logits = emotion_logit_one_hot, targets = emotion_label, weights = mask)
-            loss += tmp
+            #loss += tmp
             print("loss 2 print ", loss)
-            #loss += 2 * tf.nn.l2_loss(final_IM)
+            if self.mode == "IM":
+                loss += 0
+                #loss += 2 * tf.nn.l2_loss(final_IM)
+                #loss += tf.reduce_mean(tf.abs(final_IM))/10 #tf.reduce_mean(tf.sqrt(tf.reduce_sum(final_IM * final_IM)))
             print("loss 3 print ", loss)
             logging.debug('loss: %s' % str(loss))
             EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
