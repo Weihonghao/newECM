@@ -397,13 +397,17 @@ class ECMModel(object):
             mask = tf.cast(tf.sequence_mask(self.answer_len, tf.shape(self.answer)[0]), dtype=tf.float32)
             loss = tf.contrib.seq2seq.sequence_loss(logits = EM_output, targets = tf.transpose(self.answer, [1, 0]), weights = mask)
             print("loss 1 print ", loss)
-            emotion_label = tf.cast((tf.transpose(self.answer, [1, 0]) < (self.non_emotion_size)), dtype=tf.float32)
-            emotion_logit = tf.cast((EM_ids < (self.non_emotion_size)), dtype=tf.float32)
+            emotion_label = tf.cast((tf.transpose(self.answer, [1, 0]) < (self.non_emotion_size)), dtype=tf.int32)
+            emotion_logit = tf.cast((EM_ids < (self.non_emotion_size)), dtype=tf.int32)
 
-            tmp = tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_logit, dtype=tf.float32),
-                                                            labels=tf.cast(emotion_label, dtype=tf.float32))
-            logging.debug('tmp loss 2: %s' % str(tmp))
-            #loss += tf.reduce_sum(tmp)
+            #tmp = tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_logit, dtype=tf.float32),
+                                                            #labels=tf.cast(emotion_label, dtype=tf.float32))
+            #logging.debug('tmp loss 2: %s' % str(tmp))
+            #loss += tf.reduce_mean(tmp)
+            emotion_logit_one_hot = tf.cast(tf.one_hot(emotion_logit,2,on_value=1,off_value=0), dtype=tf.float32)
+            emotion_logit_one_hot = emotion_logit_one_hot + 0.001
+            tmp = tf.contrib.seq2seq.sequence_loss(logits = emotion_logit_one_hot, targets = emotion_label, weights = tf.ones_like(emotion_label, dtype=tf.float32))
+            loss += tmp
             print("loss 2 print ", loss)
             #loss += 2 * tf.nn.l2_loss(final_IM)
             print("loss 3 print ", loss)
