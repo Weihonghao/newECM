@@ -24,6 +24,9 @@ from tensorflow.python.platform import gfile
 logging.basicConfig(level=logging.INFO)
 
 
+
+real_data_dir = "testdata"
+
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
@@ -31,10 +34,10 @@ tf.app.flags.DEFINE_integer("batch_size", 2, "Batch size to use during training.
 tf.app.flags.DEFINE_integer("epochs", 100000, "Number of epochs to train.")
 tf.app.flags.DEFINE_float("keep_prob", 0.95, "Keep prob of output.")
 tf.app.flags.DEFINE_integer("state_size", 256, "Size of encoder and decoder hidden layer.")
-tf.app.flags.DEFINE_string("data_dir", "testdata/", "Data directory")
+tf.app.flags.DEFINE_string("data_dir", real_data_dir + "/", "Data directory")
 tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints/", "Checkpoint directory")
 tf.app.flags.DEFINE_string("log_dir", "log/", "Tensorboard log directory")
-tf.app.flags.DEFINE_string("vocab_path", "testdata/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
+tf.app.flags.DEFINE_string("vocab_path", real_data_dir + "/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
 tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
 tf.app.flags.DEFINE_string("embed_path", "",
                            "Path to the trimmed GLoVe embedding (default: ./data/squad/glove.trimmed.{embedding_size}.npz)")
@@ -147,7 +150,7 @@ def train():
     start_time = time.time()
     data_config = DataConfig(FLAGS.data_dir)
     logFile = open('data/log.txt', 'w')
-    embed_path = FLAGS.embed_path or pjoin("testdata", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
+    embed_path = FLAGS.embed_path or pjoin(real_data_dir, "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
     embeddings = utils.load_glove_embeddings(embed_path)
 
     vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")

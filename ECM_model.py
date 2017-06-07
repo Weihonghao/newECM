@@ -326,7 +326,7 @@ class ECMModel(object):
         decoder_batch_size, decoder_dim = tf.unstack(tf.shape(decoder_output))
         gto = tf.sigmoid(tf.matmul(decoder_output, self.vu))
         decode_output_logits = tf.add(tf.matmul(decoder_output, self.W), self.b)
-        boost_output = tf.concat([gto * decoder_output[:, :self.non_emotion_size], (1 - gto) * decoder_output[:, self.non_emotion_size:]], 1)
+        boost_output = tf.concat([gto * decode_output_logits[:, :self.non_emotion_size], (1 - gto) * decode_output_logits[:, self.non_emotion_size:]], 1)
         prediction = tf.argmax(boost_output, axis=1)  # [batch, 1]
         return prediction, boost_output
 
