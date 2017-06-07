@@ -256,9 +256,11 @@ def decode():
             tag = int(tf.compat.as_bytes(tag))
             data = [token_ids], [len(token_ids)], [tag]
             outputs = model.answer(sess, data)
+            print("look here")
+            print(outputs)
             if preprocess_data.EOS_ID in outputs:
                 outputs = outputs[:outputs.index(preprocess_data.EOS_ID)]
-            print(" ".join([tf.compat.as_str(rev_vocab[output]) for output in outputs]))
+            print(" ".join([tf.compat.as_str(output) for output in outputs[0]]))#rev_vocab[output]) for output in outputs]))
             print("> ", end="")
             sys.stdout.flush()
             sentence = sys.stdin.readline()
