@@ -22,14 +22,14 @@ import seq2seq_model
 from tensorflow.python.platform import gfile
 import nltk
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 logging.basicConfig(level=logging.INFO)
 
 #real_data_dir = "small_data"
 real_data_dir = "data"
 
-tf.app.flags.DEFINE_float("learning_rate", 0.5, "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate", 0.1, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_integer("batch_size", 32, "Batch size to use during training.")
@@ -171,7 +171,7 @@ def train():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:  # log_device_placement=True
         # Create model.
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-        with tf.device('/gpu:0'):
+        with tf.device('/gpu:1'):
             # print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
             saver = tf.train.Saver()
@@ -254,7 +254,7 @@ def test():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:  # log_device_placement=True
         # Create model.
         #sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-        with tf.device('/gpu:0'):
+        with tf.device('/gpu:1'):
             # print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
             saver = tf.train.Saver()

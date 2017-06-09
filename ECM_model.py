@@ -16,7 +16,7 @@ import numpy as np
 from tensorflow.contrib.rnn import LSTMCell, LSTMStateTuple
 
 class ECMModel(object):
-    def __init__(self, embeddings, id2word, config, forward_only=False, mode = "IM"):
+    def __init__(self, embeddings, id2word, config, forward_only=False, mode = "VE"):
         magic_number = 512
         assert  (magic_number%2 == 0)
         # self.vocab_label = vocab_label  # label for vocab
@@ -30,7 +30,7 @@ class ECMModel(object):
         self.id2word = id2word
         self.forward_only = forward_only
         self.emotion_kind = 6
-        self.emotion_vector_dim = 100
+        self.emotion_vector_dim = 200
         self.emotion_vector = tf.get_variable("emotion_vector", shape=[self.emotion_kind, self.emotion_vector_dim],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
@@ -422,7 +422,7 @@ class ECMModel(object):
             #logging.debug('tmp loss 1: %s' % str(tmp))
             #loss = tf.reduce_sum(tmp) # self.vocab_label)
             mask = tf.cast(tf.sequence_mask(self.answer_len, tf.shape(self.answer)[0]), dtype=tf.float32)
-            loss = tf.contrib.seq2seq.sequence_loss(logits = EM_output, targets = tf.transpose(self.answer, [1, 0]), weights = tf.ones_like(tf.transpose(self.answer, [1, 0]),dtype=tf.float32))#mask)
+            loss = tf.contrib.seq2seq.sequence_loss(logits = EM_output, targets = tf.transpose(self.answer, [1, 0]), weights = mask)#tf.ones_like(tf.transpose(self.answer, [1, 0]),dtype=tf.float32))#mask)
             print("loss 1 print ", loss)
             emotion_label = tf.cast((tf.transpose(self.answer, [1, 0]) < (self.non_emotion_size)), dtype=tf.int32)
             emotion_logit = tf.cast((EM_ids < (self.non_emotion_size)), dtype=tf.int32)
