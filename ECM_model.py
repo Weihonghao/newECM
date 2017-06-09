@@ -41,7 +41,7 @@ class ECMModel(object):
         input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim +
 
 
-        self.IM_size = 256
+        self.IM_size = 512
         self.mode = mode
         if self.mode == "VE":
             self.additional_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim]

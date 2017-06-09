@@ -26,10 +26,10 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 logging.basicConfig(level=logging.INFO)
 
-real_data_dir = "small_data"
-#real_data_dir = "data"
+#real_data_dir = "small_data"
+real_data_dir = "data"
 
-tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate", 0.5, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_integer("batch_size", 32, "Batch size to use during training.")
@@ -38,8 +38,8 @@ tf.app.flags.DEFINE_integer("testepochs", 10, "Number of epochs to test.")
 tf.app.flags.DEFINE_float("keep_prob", 0.95, "Keep prob of output.")
 tf.app.flags.DEFINE_integer("state_size", 256, "Size of encoder and decoder hidden layer.")
 tf.app.flags.DEFINE_string("data_dir", real_data_dir + "/", "Data directory")
-#tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints/", "Checkpoint directory")
-tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints_backup/", "Checkpoint directory")
+tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints/", "Checkpoint directory")
+#tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints_backup/", "Checkpoint directory")
 tf.app.flags.DEFINE_string("log_dir", "log/", "Tensorboard log directory")
 tf.app.flags.DEFINE_string("vocab_path", real_data_dir + "/vocab.dat",
                            "Path to vocab file (default: ./data/squad/vocab.dat)")
