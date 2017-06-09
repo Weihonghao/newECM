@@ -17,7 +17,7 @@ from tensorflow.contrib.rnn import LSTMCell, LSTMStateTuple
 
 class ECMModel(object):
     def __init__(self, embeddings, id2word, config, forward_only=False, mode = "IM"):
-        magic_number = 256
+        magic_number = 512
         assert  (magic_number%2 == 0)
         # self.vocab_label = vocab_label  # label for vocab
         # self.emotion_label = emotion_label  # label for emotion
@@ -422,7 +422,7 @@ class ECMModel(object):
             #logging.debug('tmp loss 1: %s' % str(tmp))
             #loss = tf.reduce_sum(tmp) # self.vocab_label)
             mask = tf.cast(tf.sequence_mask(self.answer_len, tf.shape(self.answer)[0]), dtype=tf.float32)
-            loss = tf.contrib.seq2seq.sequence_loss(logits = EM_output, targets = tf.transpose(self.answer, [1, 0]), weights = mask)
+            loss = tf.contrib.seq2seq.sequence_loss(logits = EM_output, targets = tf.transpose(self.answer, [1, 0]), weights = tf.ones_like(tf.transpose(self.answer, [1, 0]),dtype=tf.float32))#mask)
             print("loss 1 print ", loss)
             emotion_label = tf.cast((tf.transpose(self.answer, [1, 0]) < (self.non_emotion_size)), dtype=tf.int32)
             emotion_logit = tf.cast((EM_ids < (self.non_emotion_size)), dtype=tf.int32)
@@ -433,7 +433,7 @@ class ECMModel(object):
             #loss += tf.reduce_mean(tmp)
             emotion_logit_one_hot = tf.cast(tf.one_hot(emotion_logit,2,on_value=1,off_value=0), dtype=tf.float32)
             emotion_logit_one_hot = emotion_logit_one_hot * 100
-            tmp = tf.contrib.seq2seq.sequence_loss(logits = emotion_logit_one_hot, targets = emotion_label, weights = mask)
+            tmp = tf.contrib.seq2seq.sequence_loss(logits = emotion_logit_one_hot, targets = emotion_label, weights = mask)#tf.ones_like(emotion_label,dtype=tf.float32))#mask)
             #loss += tmp
             print("loss 2 print ", loss)
             if self.mode == "IM":
