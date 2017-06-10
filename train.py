@@ -226,7 +226,7 @@ def train():
                 avg_loss = 0
                 for i, batch in enumerate(utils.minibatches(validation_set, FLAGS.batch_size,
                                                             window_batch=FLAGS.window_batch)):  # validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
-                    loss, ids, lr = model.test(sess, batch)
+                    loss, ids = model.test(sess, batch)
                     print('loss: %f' % (loss))
                     print(batch[2].T)
                     print(ids)
