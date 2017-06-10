@@ -22,19 +22,19 @@ import seq2seq_model
 from tensorflow.python.platform import gfile
 import nltk
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 logging.basicConfig(level=logging.INFO)
 
 #real_data_dir = "small_data"
-#real_data_dir = "data"
-real_data_dir = "medium_data"
+real_data_dir = "data"
+#real_data_dir = "medium_data"
 
 
-tf.app.flags.DEFINE_float("learning_rate", 0.5, "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
-tf.app.flags.DEFINE_integer("batch_size", 32, "Batch size to use during training.")
+tf.app.flags.DEFINE_integer("batch_size", 128, "Batch size to use during training.")
 tf.app.flags.DEFINE_integer("epochs", 100000, "Number of epochs to train.")
 tf.app.flags.DEFINE_integer("testepochs", 10, "Number of epochs to test.")
 tf.app.flags.DEFINE_float("keep_prob", 0.95, "Keep prob of output.")
@@ -173,7 +173,7 @@ def train():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:  # log_device_placement=True
         # Create model.
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-        with tf.device('/gpu:0'):
+        with tf.device('/gpu:1'):
             # print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
             saver = tf.train.Saver()
@@ -203,13 +203,13 @@ def train():
                     global_batch_num = batch_num * epoch + i
                     time1 = time.time()
                     if global_batch_num % FLAGS.steps_per_tensorboard == FLAGS.steps_per_tensorboard - 1:
-                        loss, merged = model.train(sess, batch, tensorboard=True)
+                        loss, merged,lr = model.train(sess, batch, tensorboard=True)
                         summary_writer.add_summary(merged, global_batch_num)
                     else:
-                        loss = model.train(sess, batch, tensorboard=False)
+                        loss, lr = model.train(sess, batch, tensorboard=False)
                     if i % 100 == 20:
                         print('epoch %d [%d/%d], loss: %f' % (epoch, i, batch_num, loss))
-                        print('learning rate %d' % (FLAGS.learning_rate))
+                        print('learning rate %f' % (lr))
                     # break
                     if global_batch_num % FLAGS.steps_per_checkpoint == FLAGS.steps_per_checkpoint - 1:
                         save(saver, sess, global_batch_num)
@@ -226,7 +226,7 @@ def train():
                 avg_loss = 0
                 for i, batch in enumerate(utils.minibatches(validation_set, FLAGS.batch_size,
                                                             window_batch=FLAGS.window_batch)):  # validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
-                    loss, ids = model.test(sess, batch)
+                    loss, ids, lr = model.test(sess, batch)
                     print('loss: %f' % (loss))
                     print(batch[2].T)
                     print(ids)
@@ -258,7 +258,7 @@ def test():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:  # log_device_placement=True
         # Create model.
         #sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
-        with tf.device('/gpu:0'):
+        with tf.device('/gpu:1'):
             # print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
             saver = tf.train.Saver()

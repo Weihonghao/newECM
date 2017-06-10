@@ -16,7 +16,7 @@ import numpy as np
 from tensorflow.contrib.rnn import LSTMCell, LSTMStateTuple
 
 class ECMModel(object):
-    def __init__(self, embeddings, id2word, config, forward_only=False, mode = "VE"):
+    def __init__(self, embeddings, id2word, config, forward_only=False, mode = "IM"):
         magic_number = 512
         assert  (magic_number%2 == 0)
         # self.vocab_label = vocab_label  # label for vocab
@@ -30,7 +30,7 @@ class ECMModel(object):
         self.id2word = id2word
         self.forward_only = forward_only
         self.emotion_kind = 6
-        self.emotion_vector_dim = 200
+        self.emotion_vector_dim = 50#200
         self.emotion_vector = tf.get_variable("emotion_vector", shape=[self.emotion_kind, self.emotion_vector_dim],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
@@ -41,7 +41,7 @@ class ECMModel(object):
         input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim +
 
 
-        self.IM_size = 512
+        self.IM_size = 1#512
         self.mode = mode
         if self.mode == "VE":
             self.additional_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim]
@@ -377,7 +377,7 @@ class ECMModel(object):
         feed_dict[self.LQ] = LQ
         feed_dict[self.emotion_tag] = emotion_tag_batch
         padded_question = padding_batch(question_batch, LQ)
-        print("padding question size ", np.array(padded_question).shape)
+        #print("padding question size ", np.array(padded_question).shape)
         feed_dict[self.question] = padded_question
 
 
@@ -457,7 +457,10 @@ class ECMModel(object):
             logging.debug('results: %s' % str(decoder_output))
             self.tfloss, self.EM_output = loss(decoder_output, final_IM)
             loss_sum = tf.summary.scalar("loss", self.tfloss)
-            self.train_op = tf.train.AdamOptimizer(self.config.learning_rate, beta1=0.5).minimize(self.tfloss)
+            global_step = tf.Variable(0, trainable=False)
+            starter_learning_rate = self.config.learning_rate
+            self.real_learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step, 100000, 0.96, staircase=True)
+            self.train_op = tf.train.AdamOptimizer(self.real_learning_rate, beta1=0.5).minimize(self.tfloss)
         else:
             EM_ids, self.EM_output = self.external_memory_function_batch(decoder_output)
         self.tfids = tf.argmax(self.EM_output, axis=2)
@@ -473,11 +476,11 @@ class ECMModel(object):
         if tensorboard:
             run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
             run_metadata = tf.RunMetadata()
-            _, loss, merged = sess.run([self.train_op, self.tfloss, self.merged_all], feed_dict=input_feed, options=run_options, run_metadata=run_metadata)
-            return loss, merged
+            _, loss, merged, lr = sess.run([self.train_op, self.tfloss, self.merged_all, self.self.real_learning_rate], feed_dict=input_feed, options=run_options, run_metadata=run_metadata)
+            return loss, merged, lr
         else:
-            _, loss = sess.run([self.train_op, self.tfloss], feed_dict=input_feed)
-            return loss
+            _, loss, lr = sess.run([self.train_op, self.tfloss, self.real_learning_rate], feed_dict=input_feed)
+            return loss, lr
 
     def answer(self, sess, dataset):
         #print(len(dataset))
