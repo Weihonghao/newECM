@@ -29,7 +29,7 @@ logging.basicConfig(level=logging.INFO)
 #real_data_dir = "small_data"
 real_data_dir = "data"
 #real_data_dir = "medium_data"
-
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
 
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
@@ -170,7 +170,7 @@ def train():
     print(embeddings.shape[0], len(vocab))
     assert embeddings.shape[0] == len(vocab)
 
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:  # log_device_placement=True
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)) as sess:  # log_device_placement=True
         # Create model.
         sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
         with tf.device('/gpu:1'):
@@ -255,7 +255,7 @@ def test():
     print(embeddings.shape[0], len(vocab))
     assert embeddings.shape[0] == len(vocab)
 
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:  # log_device_placement=True
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, gpu_options=gpu_options)) as sess:  # log_device_placement=True
         # Create model.
         #sess.run([tf.global_variables_initializer(), tf.local_variables_initializer()])
         with tf.device('/gpu:1'):
@@ -328,7 +328,7 @@ def decode():
     FLAGS.encoder_state_size = 128
     FLAGS.decoder_state_size = 2 * FLAGS.encoder_state_size
     FLAGS.batch_size = 1
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,gpu_options=gpu_options)) as sess:
         model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS, forward_only=True)
         saver = tf.train.Saver()
         initialize_model(saver, sess, model)
